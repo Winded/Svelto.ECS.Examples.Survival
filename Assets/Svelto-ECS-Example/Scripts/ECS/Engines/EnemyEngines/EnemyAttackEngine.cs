@@ -11,9 +11,9 @@ namespace Svelto.ECS.Example.Survive.Enemies
         public void Ready()
         {}
 
-        public EnemyAttackEngine(ISequencer enemyrDamageSequence, ITime time)
+        public EnemyAttackEngine(SingleSequence<DamageInfo> attackSequence, ITime time)
         {
-            _targetDamageSequence = enemyrDamageSequence;
+            _attackSequence = attackSequence;
             _time = time;
             _taskRoutine = TaskRunner.Instance.AllocateNewTaskRoutine().SetEnumerator(CheckIfHittingEnemyTarget()).SetScheduler(StandardSchedulers.physicScheduler);
         }
@@ -86,7 +86,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
                                     var damageInfo = new DamageInfo(enemiesAttackData[enemyIndex].attackDamage, Vector3.zero,
                                                                     targetEntityView.ID, EntityDamagedType.Player);
 
-                                    _targetDamageSequence.Next(this, ref damageInfo);
+                                    _attackSequence.Trigger(ref damageInfo);
                                 }
                             }
                         }
@@ -98,7 +98,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
         }
 
 
-        readonly ISequencer            _targetDamageSequence;
+        readonly SingleSequence<DamageInfo> _attackSequence;
         readonly ITime                 _time;
         readonly ITaskRoutine          _taskRoutine;
     }

@@ -2,7 +2,7 @@ using System.Collections;
 
 namespace Svelto.ECS.Example.Survive.Enemies
 {
-    public class EnemyMovementEngine : IQueryingEntitiesEngine, IStep<DamageInfo, DamageCondition>
+    public class EnemyMovementEngine : IQueryingEntitiesEngine, IStep<DamageInfo>
     {
         public IEntitiesDB entitiesDB { set; private get; }
 
@@ -43,7 +43,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
             });
         }
 
-        public void Step(ref DamageInfo token, DamageCondition condition)
+        public void Step(ref DamageInfo token, int condition)
         {
             StopEnemyOnDeath(token.entityDamagedID);
         }

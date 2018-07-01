@@ -118,9 +118,15 @@ namespace Svelto.ECS.Example.Survive
             //in my articles). 2) filter a data token passed as parameter through
             //engines. The ISequencer is also not the common way to communicate
             //between engines
-            Sequencer playerDamageSequence = new Sequencer();
-            Sequencer enemyDamageSequence = new Sequencer();
-            
+            //Sequencer playerDamageSequence = new Sequencer();
+            //Sequencer enemyDamageSequence = new Sequencer();
+
+            var enemyAttackSequence = new SingleSequence<DamageInfo>();
+            var playerShootSequence = new SingleSequence<DamageInfo>();
+            var playerDamageSequence = new SingleSequence<DamageInfo>();
+            var enemyDamageSequence = new SingleSequence<DamageInfo>();
+            var enemyDeathSequence = new SingleSequence<EGID>();
+
             //wrap non testable unity static classes, so that 
             //can be mocked if needed.
             IRayCaster rayCaster = new RayCaster();
@@ -129,7 +135,7 @@ namespace Svelto.ECS.Example.Survive
             //Player related engines. ALL the dependecies must be solved at this point
             //through constructor injection.
             var playerHealthEngine = new HealthEngine(playerDamageSequence);
-            var playerShootingEngine = new PlayerGunShootingEngine(enemyDamageSequence, rayCaster, time);
+            var playerShootingEngine = new PlayerGunShootingEngine(playerShootSequence, rayCaster, time);
             var playerMovementEngine = new PlayerMovementEngine(rayCaster, time);
             var playerAnimationEngine = new PlayerAnimationEngine();
             var playerDeathEngine = new PlayerDeathEngine(entityFunctions);
@@ -138,7 +144,7 @@ namespace Svelto.ECS.Example.Survive
             var enemyAnimationEngine = new EnemyAnimationEngine();
             //HealthEngine is a different object for the enemy because it uses a different sequence
             var enemyHealthEngine = new HealthEngine(enemyDamageSequence);
-            var enemyAttackEngine = new EnemyAttackEngine(playerDamageSequence, time);
+            var enemyAttackEngine = new EnemyAttackEngine(enemyAttackSequence, time);
             var enemyMovementEngine = new EnemyMovementEngine();
             
             //GameObjectFactory allows to create GameObjects without using the Static
@@ -151,74 +157,102 @@ namespace Svelto.ECS.Example.Survive
             //Factory is one of the few patterns that work very well with ECS. Its use is highly encuraged
             IEnemyFactory enemyFactory = new EnemyFactory(factory, _entityFactory);
             var enemySpawnerEngine = new EnemySpawnerEngine(enemyFactory, entityFunctions);
-            var enemyDeathEngine = new EnemyDeathEngine(entityFunctions, time, enemyDamageSequence);
+            var enemyDeathEngine = new EnemyDeathEngine(entityFunctions, time, enemyDeathSequence);
             
             //hud and sound engines
             var hudEngine = new HUDEngine(time);
             var damageSoundEngine = new DamageSoundEngine();
             var scoreEngine = new ScoreEngine();
+
+            enemyAttackSequence
+                .Next(playerHealthEngine);
+
+            playerShootSequence
+                .Next(enemyHealthEngine);
+
+            playerDamageSequence
+                // Next steps are only when player is damaged
+                .Condition((int)DamageCondition.Damage)
+                .Next(hudEngine)
+                .Next(damageSoundEngine)
+                // Next steps are only when player dies
+                .Condition((int)DamageCondition.Dead)
+                .Next(hudEngine).Next(damageSoundEngine)
+                .Next(playerMovementEngine).Next(playerAnimationEngine)
+                .Next(enemyAnimationEngine).Next(playerDeathEngine);
+
+            enemyDamageSequence
+                .Condition((int)DamageCondition.Damage)
+                .Next(enemyAnimationEngine)
+                .Next(damageSoundEngine)
+                .Condition((int)DamageCondition.Dead)
+                .Next(scoreEngine).Next(enemyMovementEngine)
+                .Next(enemyAnimationEngine).Next(damageSoundEngine)
+                .Next(enemyDeathEngine);
+
+            enemyDeathSequence.Next(enemySpawnerEngine);
             
             //The ISequencer implementaton is very simple, but allows to perform
             //complex concatenation including loops and conditional branching.
-            playerDamageSequence.SetSequence(
-                new Steps //sequence of steps, this is a dictionary!
-                { 
-                    { //first step
-                        /*from: */enemyAttackEngine, //this step can be triggered only by this engine through the Next function
-                        /*to:   */new To //this step can lead only to one branch
-                        { 
-                            //this is the only engine that will be called when enemyAttackEngine triggers Next()
-                            playerHealthEngine 
-                        }  
-                    },
-                    { //second step
-                        /*from: */playerHealthEngine, //this step can be triggered only by this engine through the Next function
-                        /*to:   */new To<DamageCondition> //once the playerHealthEngine calls the Step method,
-                            //all these engines in the list will be called
-                            //depending the condition. The order of the engines triggered is guaranteed.
-                        { 
-                            //these engines will be called when the Next function is called with the DamageCondition.damage set
-                            {  DamageCondition.Damage, new IStep<DamageInfo, DamageCondition>[] { hudEngine, damageSoundEngine }  }, 
-                            //these engines will be called when the Next function is called with the DamageCondition.dead set
-                            {  DamageCondition.Dead, new IStep<DamageInfo, DamageCondition>[] { 
-                                hudEngine, damageSoundEngine, 
-                                playerMovementEngine, playerAnimationEngine, 
-                                enemyAnimationEngine, playerDeathEngine }  } 
-                        }  
-                    }  
-                }
-            );
+            //playerDamageSequence.SetSequence(
+            //    new Steps //sequence of steps, this is a dictionary!
+            //    { 
+            //        { //first step
+            //            /*from: */enemyAttackEngine, //this step can be triggered only by this engine through the Next function
+            //            /*to:   */new To //this step can lead only to one branch
+            //            { 
+            //                //this is the only engine that will be called when enemyAttackEngine triggers Next()
+            //                playerHealthEngine 
+            //            }  
+            //        },
+            //        { //second step
+            //            /*from: */playerHealthEngine, //this step can be triggered only by this engine through the Next function
+            //            /*to:   */new To<DamageCondition> //once the playerHealthEngine calls the Step method,
+            //                //all these engines in the list will be called
+            //                //depending the condition. The order of the engines triggered is guaranteed.
+            //            { 
+            //                //these engines will be called when the Next function is called with the DamageCondition.damage set
+            //                {  DamageCondition.Damage, new IStep<DamageInfo, DamageCondition>[] { hudEngine, damageSoundEngine }  }, 
+            //                //these engines will be called when the Next function is called with the DamageCondition.dead set
+            //                {  DamageCondition.Dead, new IStep<DamageInfo, DamageCondition>[] { 
+            //                    hudEngine, damageSoundEngine, 
+            //                    playerMovementEngine, playerAnimationEngine, 
+            //                    enemyAnimationEngine, playerDeathEngine }  } 
+            //            }  
+            //        }  
+            //    }
+            //);
 
-            enemyDamageSequence.SetSequence(
-                new Steps
-                { 
-                    { 
-                        playerShootingEngine, 
-                        new To
-                        { 
-                            //in every case go to enemyHealthEngine
-                            enemyHealthEngine
-                        }  
-                    },
-                    { 
-                        enemyHealthEngine, 
-                        new To<DamageCondition>
-                        { 
-                            {  DamageCondition.Damage, new IStep<DamageInfo, DamageCondition>[] { enemyAnimationEngine, damageSoundEngine }  },
-                            {  DamageCondition.Dead, new IStep<DamageInfo, DamageCondition>[] { scoreEngine, enemyMovementEngine, 
-                                enemyAnimationEngine, 
-                                damageSoundEngine, enemyDeathEngine  }  }
-                        }  
-                    },
-                    { 
-                        enemyDeathEngine, 
-                        new To
-                        { 
-                            enemySpawnerEngine
-                        }  
-                    }  
-                }
-            );
+            //enemyDamageSequence.SetSequence(
+            //    new Steps
+            //    { 
+            //        { 
+            //            playerShootingEngine, 
+            //            new To
+            //            { 
+            //                //in every case go to enemyHealthEngine
+            //                enemyHealthEngine
+            //            }  
+            //        },
+            //        { 
+            //            enemyHealthEngine, 
+            //            new To<DamageCondition>
+            //            { 
+            //                {  DamageCondition.Damage, new IStep<DamageInfo, DamageCondition>[] { enemyAnimationEngine, damageSoundEngine }  },
+            //                {  DamageCondition.Dead, new IStep<DamageInfo, DamageCondition>[] { scoreEngine, enemyMovementEngine, 
+            //                    enemyAnimationEngine, 
+            //                    damageSoundEngine, enemyDeathEngine  }  }
+            //            }  
+            //        },
+            //        { 
+            //            enemyDeathEngine, 
+            //            new To
+            //            { 
+            //                enemySpawnerEngine
+            //            }  
+            //        }  
+            //    }
+            //);
 
             //Mandatory step to make engines work
             //Player engines

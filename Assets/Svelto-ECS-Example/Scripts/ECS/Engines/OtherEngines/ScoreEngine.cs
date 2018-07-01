@@ -2,13 +2,13 @@ using Svelto.ECS.Example.Survive.Player;
 
 namespace Svelto.ECS.Example.Survive.HUD
 {
-    public class ScoreEngine : IQueryingEntitiesEngine, IStep<DamageInfo, DamageCondition>
+    public class ScoreEngine : IQueryingEntitiesEngine, IStep<DamageInfo>
     {
         public IEntitiesDB entitiesDB { get; set; }
         public void Ready()
         {}
         
-        public void Step(ref DamageInfo token, DamageCondition condition)
+        public void Step(ref DamageInfo token, int condition)
         {
             int hudEntityViewsCount;
             var hudEntityViews = entitiesDB.QueryEntities<HUDEntityView>(out hudEntityViewsCount);

@@ -4,13 +4,13 @@ using Svelto.ECS.Example.Survive.Player;
 
 namespace Svelto.ECS.Example.Survive.Enemies
 {
-    public class EnemyDeathEngine:IQueryingEntitiesEngine, IStep<DamageInfo, DamageCondition>
+    public class EnemyDeathEngine:IQueryingEntitiesEngine, IStep<DamageInfo>
     {
-        public EnemyDeathEngine(IEntityFunctions entityFunctions, ITime time, ISequencer enemyDeadSequencer)
+        public EnemyDeathEngine(IEntityFunctions entityFunctions, ITime time, SingleSequence<EGID> deathSequence)
         {
             _entityFunctions = entityFunctions;
             _time = time;
-            _enemyDeadSequencer = enemyDeadSequencer;
+            _deathSequence = deathSequence;
         }
         
         public IEntitiesDB entitiesDB { get; set; }
@@ -18,7 +18,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
         public void Ready()
         {}
         
-        public void Step(ref DamageInfo token, DamageCondition condition)
+        public void Step(ref DamageInfo token, int condition)
         {
             uint index;
             var entity = entitiesDB.QueryEntitiesAndIndex<EnemyEntityViewStruct>(token.entityDamagedID, out index)[index];
@@ -42,11 +42,11 @@ namespace Svelto.ECS.Example.Survive.Enemies
             }
 
             var entityId = entity.ID;
-            _enemyDeadSequencer.Next(this, ref entityId);
+            _deathSequence.Trigger(ref entityId);
         }
 
         readonly IEntityFunctions _entityFunctions;
         readonly ITime            _time;
-        readonly ISequencer       _enemyDeadSequencer;
+        readonly SingleSequence<EGID> _deathSequence;
     }
 }

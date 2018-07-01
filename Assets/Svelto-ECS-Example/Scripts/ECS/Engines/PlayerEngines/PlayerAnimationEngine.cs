@@ -3,7 +3,7 @@ using Svelto.Tasks;
 
 namespace Svelto.ECS.Example.Survive.Player
 {
-    public class PlayerAnimationEngine : SingleEntityEngine<PlayerEntityView>, IQueryingEntitiesEngine, IStep<DamageInfo, DamageCondition>
+    public class PlayerAnimationEngine : SingleEntityEngine<PlayerEntityView>, IQueryingEntitiesEngine, IStep<DamageInfo>
     {
         public IEntitiesDB entitiesDB { get; set; }
         public void Ready()
@@ -49,7 +49,7 @@ namespace Svelto.ECS.Example.Survive.Player
             playerEntityViews[index].animationComponent.playAnimation = "Die";
         }
 
-        public void Step(ref DamageInfo token, DamageCondition condition)
+        public void Step(ref DamageInfo token, int condition)
         {
             TriggerDeathAnimation(token.entityDamagedID);
         }

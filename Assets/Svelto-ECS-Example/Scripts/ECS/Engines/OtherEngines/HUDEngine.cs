@@ -16,7 +16,7 @@ namespace Svelto.ECS.Example.Survive.HUD
     /// Therefore using the Add/Remove callbacks is not wrong, but I try to not
     /// promote their use. 
     /// </summary>
-    public class HUDEngine : IQueryingEntitiesEngine, IStep<DamageInfo, DamageCondition>
+    public class HUDEngine : IQueryingEntitiesEngine, IStep<DamageInfo>
     {
         public IEntitiesDB entitiesDB { set; private get; }
 
@@ -95,12 +95,12 @@ namespace Svelto.ECS.Example.Survive.HUD
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
 
-        public void Step(ref DamageInfo token, DamageCondition condition)
+        public void Step(ref DamageInfo token, int condition)
         {
-            if (condition == DamageCondition.Damage)
+            if ((DamageCondition)condition == DamageCondition.Damage)
                 OnDamageEvent(token);
             else
-            if (condition == DamageCondition.Dead)
+            if ((DamageCondition)condition == DamageCondition.Dead)
                 OnDeadEvent();
         }
 

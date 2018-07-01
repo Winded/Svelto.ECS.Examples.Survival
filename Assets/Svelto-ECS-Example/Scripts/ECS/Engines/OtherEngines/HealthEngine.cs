@@ -7,7 +7,7 @@ namespace Svelto.ECS.Example.Survive
         public void Ready()
         { }
 
-        public HealthEngine(ISequencer damageSequence)
+        public HealthEngine(SingleSequence<DamageInfo> damageSequence)
         {
             _damageSequence = damageSequence;
         }
@@ -22,21 +22,18 @@ namespace Svelto.ECS.Example.Survive
                                           {
                                               healthEntityStruct.currentHealth -=
                                                   damageInfo.damagePerShot;
-                                                  
+
                                               //the HealthEngine can branch the sequencer flow triggering two different
                                               //conditions
                                               if (healthEntityStruct.currentHealth <= 0)
-                                                  _damageSequence.Next(this, ref damageInfo,
-                                                                       DamageCondition.Dead);
+                                                  _damageSequence.Trigger(ref damageInfo, (int)DamageCondition.Dead);
                                               else
-                                                  _damageSequence.Next(this, ref damageInfo,
-                                                                       DamageCondition
-                                                                          .Damage);
+                                                  _damageSequence.Trigger(ref damageInfo, (int)DamageCondition.Damage);
                                           }
                                          );
             
         }
 
-        readonly ISequencer  _damageSequence;
+        readonly SingleSequence<DamageInfo> _damageSequence;
     }
 }

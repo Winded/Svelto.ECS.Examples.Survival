@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Svelto.ECS.Example.Survive.Player
 {
-    public class PlayerMovementEngine : SingleEntityEngine<PlayerEntityView>, IQueryingEntitiesEngine, IStep<DamageInfo, DamageCondition>
+    public class PlayerMovementEngine : SingleEntityEngine<PlayerEntityView>, IQueryingEntitiesEngine, IStep<DamageInfo>
     {
         public IEntitiesDB entitiesDB { get; set; }
         public void Ready()
@@ -93,7 +93,7 @@ namespace Svelto.ECS.Example.Survive.Player
             playerEntityView.rigidBodyComponent.isKinematic = true;
         }
 
-        public void Step(ref DamageInfo token, DamageCondition condition)
+        public void Step(ref DamageInfo token, int condition)
         {
             StopMovementOnDeath(token.entityDamagedID);
         }

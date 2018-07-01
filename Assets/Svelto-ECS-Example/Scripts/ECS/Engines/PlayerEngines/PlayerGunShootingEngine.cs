@@ -14,9 +14,9 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             _taskRoutine.Start();
         }
         
-        public PlayerGunShootingEngine(ISequencer damageSequence, IRayCaster rayCaster, ITime time)
+        public PlayerGunShootingEngine(SingleSequence<DamageInfo> shootSequence, IRayCaster rayCaster, ITime time)
         {
-            _enemyDamageSequence   = damageSequence;
+            _shootSequence   = shootSequence;
             _rayCaster             = rayCaster;
             _time                  = time;
             _taskRoutine           = TaskRunner.Instance.AllocateNewTaskRoutine().SetEnumerator(Tick())
@@ -80,7 +80,7 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
                 if (entitiesDB.Exists<PlayerTargetTypeEntityStruct>(new EGID(entityHit)))
                 {
                     var damageInfo = new DamageInfo(playerGunComponent.damagePerShot, point, new EGID(entityHit), EntityDamagedType.Enemy);
-                    _enemyDamageSequence.Next(this, ref damageInfo);
+                    _shootSequence.Trigger(ref damageInfo);
 
                     playerGunComponent.lastTargetPosition = point;
                     playerGunHitComponent.targetHit.value = true;
@@ -92,7 +92,7 @@ namespace Svelto.ECS.Example.Survive.Player.Gun
             playerGunHitComponent.targetHit.value = false;
         }
 
-        readonly ISequencer    _enemyDamageSequence;
+        readonly SingleSequence<DamageInfo> _shootSequence;
         readonly IRayCaster    _rayCaster;
         readonly ITime         _time;
         readonly ITaskRoutine  _taskRoutine;

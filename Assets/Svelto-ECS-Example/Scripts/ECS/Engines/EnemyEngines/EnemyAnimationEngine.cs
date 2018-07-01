@@ -1,6 +1,6 @@
 namespace Svelto.ECS.Example.Survive.Enemies
 {
-    public class EnemyAnimationEngine : IQueryingEntitiesEngine, IStep<DamageInfo, DamageCondition>
+    public class EnemyAnimationEngine : IQueryingEntitiesEngine, IStep<DamageInfo>
     {
         public IEntitiesDB entitiesDB { set; private get; }
 
@@ -38,12 +38,12 @@ namespace Svelto.ECS.Example.Survive.Enemies
             
         }
 
-        public void Step(ref DamageInfo token, DamageCondition condition)
+        public void Step(ref DamageInfo token, int condition)
         {
             if (token.entityType == EntityDamagedType.Enemy)
             {
                 //if enemy dies
-                if (condition == DamageCondition.Dead)
+                if ((DamageCondition)condition == DamageCondition.Dead)
                     TriggerDeathAnimation(token.entityDamagedID);
                 else
                 //if enemy is damaged
@@ -52,7 +52,7 @@ namespace Svelto.ECS.Example.Survive.Enemies
             else
             {
                 //is player is dead, the enemy cheers
-                if (condition == DamageCondition.Dead)
+                if ((DamageCondition)condition == DamageCondition.Dead)
                     TriggerTargetDeathAnimation();    
             }
         }
